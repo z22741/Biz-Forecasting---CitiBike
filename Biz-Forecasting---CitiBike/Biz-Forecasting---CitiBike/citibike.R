@@ -5,6 +5,7 @@ library(fpp)
 library(gtools)
 library(ggplot2)
 library(zoo)
+library(scales)
 
 # Load Data
 bike_data = data.frame(matrix(ncol = 2, nrow = 0))
@@ -67,10 +68,36 @@ names(pass_bike_data) = col_name
  
 # Create time series data
 ts_bike = ts(zoo(pass_bike_data$Pass_24H, order.by=pass_bike_data$Date),  frequency=1)
-autoplot(ts_bike)
+ggplot(ts_bike, aes(Date, Pass_24H)) + geom_line() +
+  scale_x_date(format = "%Y") + xlab("") + ylab("Daily Views")
 
 
 # Trend on membership
+member$Month <- as.Date(cut(member$Date,
+                         breaks = "month"))
+member$Week <- as.Date(cut(member$Date,
+                            breaks = "week"))
+member$Quarter <- as.Date(cut(member$Date,
+                           breaks = "quarter"))
+ggplot(data = member,
+       aes(Month, Total_mem)) +
+  stat_summary(fun.y = sum, # adds up all observations for the month
+               geom = "bar") + # or "line"
+  scale_x_date(
+    labels = date_format("%Y-%m"),
+    breaks = "1 month") # custom x-axis labels
+
+ggplot(data = member,
+       aes(Quarter, Total_mem)) +
+  stat_summary(fun.y = sum, # adds up all observations for the month
+               geom = "bar") + # or "line"
+  scale_x_date(
+    labels = date_format("%Y-%q"),
+    breaks = "1 month") # custom x-axis labels
+
+
+member_Y = member %>% group_by(Date=floor_date(Date, "year")) %>%
+  summarize(Total_mem=sum(Total_mem))
 member_M = member %>% group_by(Date=floor_date(Date, "month")) %>%
   summarize(Total_mem=sum(Total_mem))
 member_W = member %>% group_by(Date=floor_date(Date, "week")) %>%
@@ -82,3 +109,13 @@ ggplot(data = member_M, aes(Date, Total_mem/1000)) +
 
 ggplot(data = member_W, aes(Date, Total_mem/100)) +
   geom_line()
+
+ggplot(dates, aes(x=Date)) + geom_histogram(binwidth=30, colour="white") +
+  scale_x_date(labels = date_format("%Y-%b"),
+               breaks = seq(min(dates$Date)-5, max(dates$Date)+5, 30),
+               limits = c(as.Date("2008-05-01"), as.Date("2012-04-01"))) +
+  ylab("Frequency") + xlab("Year and Month") +
+  theme_bw() + opts(axis.text.x = theme_text(angle=90))
+
+ggplot(member_Y, aes(x="", y=Total_mem, fill=Date))+
+  geom_bar(width = 1, stat = "identity")
